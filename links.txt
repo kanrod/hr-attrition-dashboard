@@ -1,7 +1,7 @@
 LINK 1 — Repositorio en GitHub:
-https://github.com/TU_USUARIO/TU_REPOSITORIO
+https://github.com/kanrod/hr-attrition-dashboard
 
 LINK 2 — Dashboard en Binder:
-https://mybinder.org/v2/gh/TU_USUARIO/TU_REPOSITORIO/HEAD?urlpath=%2Fproxy%2F8050%2F
+https://mybinder.org/v2/gh/kanrod/hr-attrition-dashboard/HEAD?urlpath=%2Fproxy%2F8050%2F
 
-Instrucciones: Reemplaza TU_USUARIO y TU_REPOSITORIO con tus datos reales de GitHub.
+
