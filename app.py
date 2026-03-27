@@ -4,6 +4,7 @@ Programación para Ciencia de Datos II
 Juan Camilo Rodríguez Fontecha
 """
 
+import os
 import pandas as pd
 import numpy as np
 from scipy import stats
@@ -226,7 +227,11 @@ def make_metrics_radar(threshold=0.30):
 # ─────────────────────────────────────────────
 # LAYOUT
 # ─────────────────────────────────────────────
-app = dash.Dash(__name__, title='HR Attrition Dashboard')
+prefix = os.environ.get('JUPYTERHUB_SERVICE_PREFIX', '/')
+requests_pathname_prefix = f'{prefix}proxy/8050/'
+
+app = dash.Dash(__name__, title='HR Attrition Dashboard',
+                requests_pathname_prefix=requests_pathname_prefix)
 server = app.server
 
 CARD = {
@@ -280,12 +285,10 @@ app.layout = html.Div(style={'backgroundColor': C_LIGHT, 'minHeight': '100vh',
 @app.callback(Output('tab-content', 'children'), Input('tabs', 'value'))
 def render_tab(tab):
 
-    # ══ TAB 1: DATASET ══════════════════════
     if tab == 'tab-1':
         dept_options = [{'label': d, 'value': d} for d in sorted(df['Department'].unique())]
         dept_options.insert(0, {'label': 'Todos los departamentos', 'value': 'ALL'})
         return html.Div([
-            # KPIs
             html.Div(style={'display': 'flex', 'flexWrap': 'wrap'}, children=[
                 html.Div(style=METRIC_CARD, children=[
                     html.H2('1,470', style={'color': C_ACCENT, 'margin': '0'}),
@@ -304,7 +307,6 @@ def render_tab(tab):
                     html.P('Valores nulos', style={'margin': '4px 0 0', 'color': C_GRAY})
                 ]),
             ]),
-            # Gráficas fila 1
             html.Div(style={'display': 'flex', 'gap': '16px', 'flexWrap': 'wrap'}, children=[
                 html.Div(style={**CARD, 'flex': '1', 'minWidth': '280px'}, children=[
                     html.H4('Distribución de Attrition', style={'margin': '0 0 8px', 'color': C_GRAY}),
@@ -318,7 +320,6 @@ def render_tab(tab):
                     dcc.Graph(id='income-hist', config={'displayModeBar': False})
                 ]),
             ]),
-            # Tabla resumen
             html.Div(style=CARD, children=[
                 html.H4('Estadísticas Descriptivas — Variables Clave',
                         style={'margin': '0 0 12px', 'color': C_GRAY}),
@@ -336,12 +337,10 @@ def render_tab(tab):
             ])
         ])
 
-    # ══ TAB 2: HIPÓTESIS ════════════════════
     elif tab == 'tab-2':
         rechaza = p_val < 0.05
         return html.Div([
             html.Div(style={'display': 'flex', 'gap': '16px', 'flexWrap': 'wrap'}, children=[
-                # Resultado
                 html.Div(style={**CARD, 'flex': '1', 'minWidth': '280px'}, children=[
                     html.H4('Resultado del Contraste', style={'margin': '0 0 12px', 'color': C_GRAY}),
                     html.Div(style={'backgroundColor': '#0a3020' if rechaza else '#3a0a0a',
@@ -364,28 +363,22 @@ def render_tab(tab):
                                style={'margin': '4px 0', 'fontWeight': 'bold'}),
                     ])
                 ]),
-                # Boxplot
                 html.Div(style={**CARD, 'flex': '2', 'minWidth': '340px'}, children=[
                     html.H4('Distribución de Ingreso por Grupo', style={'margin': '0 0 8px', 'color': C_GRAY}),
                     dcc.Graph(figure=make_income_boxplot(), config={'displayModeBar': False})
                 ]),
             ]),
-            # Interpretación
             html.Div(style=CARD, children=[
                 html.H4('📝 Interpretación', style={'margin': '0 0 8px', 'color': C_GRAY}),
                 html.P(f'Con un p-value de {p_val:.2e}, muy inferior a α = 0.05, existe evidencia '
                        f'estadística suficiente para rechazar H₀ con un nivel de confianza superior '
-                       f'al 99.9%. La prueba {prueba_usada} (seleccionada tras verificar '
-                       f'varianzas desiguales con Levene p = {p_lev:.4f}) confirma que los empleados '
+                       f'al 99.9%. La prueba {prueba_usada} confirma que los empleados '
                        f'que renuncian tienen un ingreso mensual promedio significativamente menor '
-                       f'(${g_yes.mean():,.0f} USD) frente a los que permanecen (${g_no.mean():,.0f} USD). '
-                       f'Esta diferencia de ${g_no.mean()-g_yes.mean():,.0f} USD valida MonthlyIncome '
-                       f'como predictor relevante para los modelos de regresión.',
+                       f'(${g_yes.mean():,.0f} USD) frente a los que permanecen (${g_no.mean():,.0f} USD).',
                        style={'lineHeight': '1.7', 'margin': 0})
             ])
         ])
 
-    # ══ TAB 3: REGRESIÓN LINEAL ═════════════
     elif tab == 'tab-3':
         return html.Div([
             html.Div(style={'display': 'flex', 'gap': '16px', 'flexWrap': 'wrap'}, children=[
@@ -429,15 +422,9 @@ def render_tab(tab):
                            'borderRadius': '6px', 'display': 'block',
                            'color': '#7affb2', 'fontSize': '1rem'}
                 ),
-                html.P(f'El modelo explica el {r2*100:.1f}% de la varianza en MonthlyIncome '
-                       f'con un error promedio de ${rmse:,.0f} USD. JobLevel tiene el mayor impacto '
-                       f'por salto unitario (${model_lin.coef_[2]:,.0f} USD/nivel), mientras que '
-                       f'TotalWorkingYears aporta ${model_lin.coef_[0]:.0f} USD por año adicional.',
-                       style={'marginTop': '12px', 'lineHeight': '1.7'})
             ])
         ])
 
-    # ══ TAB 4: REGRESIÓN LOGÍSTICA ══════════
     elif tab == 'tab-4':
         coefs_log = model_log.coef_[0]
         intercept_log = model_log.intercept_[0]
@@ -462,17 +449,12 @@ def render_tab(tab):
                     html.P('Precisión (clase 1)', style={'margin': '4px 0 0', 'color': C_GRAY})
                 ]),
             ]),
-
-            # Slider umbral
             html.Div(style=CARD, children=[
                 html.H4('🎛️ Ajuste del Umbral de Clasificación', style={'margin': '0 0 8px', 'color': C_GRAY}),
-                html.P('Mueve el umbral para ver cómo cambian las métricas y la matriz de confusión:',
-                       style={'margin': '0 0 8px', 'color': C_GRAY, 'fontSize': '0.88rem'}),
                 dcc.Slider(id='umbral-slider', min=0.10, max=0.60, step=0.05, value=0.30,
                            marks={v: f'{v:.2f}' for v in np.arange(0.10, 0.65, 0.10)},
                            tooltip={'placement': 'bottom'}),
             ]),
-
             html.Div(style={'display': 'flex', 'gap': '16px', 'flexWrap': 'wrap'}, children=[
                 html.Div(style={**CARD, 'flex': '1', 'minWidth': '300px'}, children=[
                     html.H4('Matriz de Confusión', style={'margin': '0 0 8px', 'color': C_GRAY}),
@@ -483,8 +465,6 @@ def render_tab(tab):
                     dcc.Graph(id='radar-chart', figure=make_metrics_radar(), config={'displayModeBar': False})
                 ]),
             ]),
-
-            # Simulador de perfil
             html.Div(style=CARD, children=[
                 html.H4('🔮 Simulador de Probabilidad de Renuncia',
                         style={'margin': '0 0 14px', 'color': C_GRAY}),
@@ -520,8 +500,6 @@ def render_tab(tab):
                 ]),
                 html.Div(id='sim-result', style={'marginTop': '16px'})
             ]),
-
-            # Coeficientes logísticos
             html.Div(style=CARD, children=[
                 html.H4('Coeficientes del Modelo Logístico (log-odds)',
                         style={'margin': '0 0 8px', 'color': C_GRAY}),
@@ -610,4 +588,4 @@ def simulate(n, income, years, overtime):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8050, debug=False)
+    app.run(host='0.0.0.0', port=8050, debug=False, use_reloader=False)
